@@ -1,0 +1,18 @@
+/.git/
+/.idea/
+/node_modules/
+/tmp
+app/data/*.csv
+app/data/*.xls
+
+# Mac OS files
+**/.DS_Store
+
+# Eclipse
+/.project
+/.settings
+.env
+npm-debug.log
+dump.rdb
+/.scannerwork
+/*.heapsnapshot

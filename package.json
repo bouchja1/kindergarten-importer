@@ -1,0 +1,18 @@
+{
+  "name": "skolky",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node ./app/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "6.2.0",
+    "es6-promisify": "6.0.1",
+    "fast-csv": "2.4.1",
+    "mysql": "2.16.0"
+  }
+}

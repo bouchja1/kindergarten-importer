@@ -13,6 +13,7 @@
     "dotenv": "6.2.0",
     "es6-promisify": "6.0.1",
     "fast-csv": "2.4.1",
-    "mysql": "2.16.0"
+    "mysql": "2.16.0",
+    "node-geocoder": "3.22.0"
   }
 }

@@ -1,11 +1,23 @@
 const fastCsv = require('fast-csv');
 const fs = require('fs');
 const path = require('path');
+const nodeGeocoder = require("node-geocoder");
 
 const config = require('../config');
 const MysqlConnection = require('./db');
 
 const mysqlConnection = new MysqlConnection(config);
+
+const geoCoderOptions = {
+    provider: 'google',
+
+    // Optional depending on the providers
+    httpAdapter: 'https', // Default
+    apiKey: config.GOOGLE_API_KEY,
+    formatter: null         // 'gpx', 'string', ...
+};
+
+const geocoder = nodeGeocoder(geoCoderOptions);
 
 const dataMapper = {
     nvusc: 'nvusc',
@@ -33,37 +45,66 @@ const dataMapper = {
     ['individ. Integrované']: 'children_indiv_integr',
     ['děti školy při ZZ']: 'children_zz',
     Rok: 'year',
-    // TODO lat
-    // TODO long
+    latitude: 'latitude',
+    longitude: 'longitude',
+    status: 'gps_status',
 };
+
+async function getGpsCoordinates(address) {
+// Or using Promise
+    return geocoder.geocode(address)
+        .then(function(res) {
+            return res;
+        })
+        .catch(function(err) {
+            console.log('GPS err: ', err);
+        });
+}
 
 async function importer() {
     try {
         await mysqlConnection.initConnection();
-        const dataPath = path.join(__dirname, 'data/MS.csv');
+        const dataPath = path.join(__dirname, 'data/MS_gps2.csv');
 
         var csvStream = fs.createReadStream(dataPath);
 
         const schoolsToCreate = [];
+        const uniqueRecordsMap = new Map();
 
         fastCsv
             .fromStream(csvStream, {
                 headers: true,
                 ignoreEmpty: true,
             })
-            .on("data", function (data) {
-                let schoolToCreate = {
-                    unique_hash: data.red_izo + data.Rok,
-                };
-                for (let key in data) {
-                    if (typeof dataMapper[key] !== 'undefined') {
-                        schoolToCreate = {
-                            ...schoolToCreate,
-                            [dataMapper[key]]: data[key],
+            .on("data", async function (data) {
+                let uniqueHashCalc = data.red_izo + data.izo + data.Rok;
+                let existingHash = uniqueRecordsMap.get(uniqueHashCalc);
+                if (!existingHash) {
+                    let schoolToCreate = {
+                        unique_hash: uniqueHashCalc,
+                    };
+                    for (let key in data) {
+                        if (typeof dataMapper[key] !== 'undefined') {
+                            schoolToCreate = {
+                                ...schoolToCreate,
+                                [dataMapper[key]]: data[key],
+                            }
                         }
                     }
+                    if (data.status === 'ZERO_RESULTS') {
+                        const gpsCoords = await getGpsCoordinates(data.red_misto + ' ' + data.red_ulice.replace('č.p.') + ', ' + data.red_psc + ', ' + 'Czechia');
+                        if (typeof gpsCoords !== 'undefined' && Array.isArray(gpsCoords) && gpsCoords.length) {
+                            const coord = gpsCoords[0];
+                            schoolToCreate.latitude = coord.latitude;
+                            schoolToCreate.longitude = coord.longitude;
+                            schoolToCreate.gps_status = 'FIXED';
+                        }
+                    }
+                    uniqueRecordsMap.set(schoolToCreate.unique_hash, true);
+                    schoolsToCreate.push(schoolToCreate)
+                } else {
+                    // console.log("Nooo:", data.red_izo + ' , ' + data.izo + ' , ' + data.Rok)
                 }
-                schoolsToCreate.push(schoolToCreate)
             })
             .on("end", async function () {
                 try {

@@ -28,5 +28,6 @@ CREATE TABLE `kindergarten` (
   `children_normal_class` int(5) NOT NULL DEFAULT 0,
   `latitude` DECIMAL(10, 8),
   `longitude` DECIMAL(11, 8),
+  `gps_status` varchar(255),
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci

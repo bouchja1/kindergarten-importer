@@ -64,7 +64,7 @@ async function getGpsCoordinates(address) {
 async function importer() {
     try {
         await mysqlConnection.initConnection();
-        const dataPath = path.join(__dirname, 'data/MS_gps2.csv');
+        const dataPath = path.join(__dirname, 'data/MS_gps3.csv');
 
         var csvStream = fs.createReadStream(dataPath);
 
@@ -91,13 +91,25 @@ async function importer() {
                             }
                         }
                     }
+
+                    if (typeof data.latitude === 'string') {
+                        if (data.latitude.indexOf(',') !== -1) {
+                            data.latitude = data.latitude.replace(',', '.');
+                            schoolToCreate.latitude = Number(data.latitude);
+                        }
+                    }
+                    if (typeof data.longitude === 'string') {
+                        if (data.longitude.indexOf(',') !== -1) {
+                            data.longitude = data.longitude.replace(',', '.');
+                            schoolToCreate.longitude = Number(data.longitude);
+                        }
+                    }
                     if (data.status === 'ZERO_RESULTS') {
                         const gpsCoords = await getGpsCoordinates(data.red_misto + ' ' + data.red_ulice.replace('č.p.') + ', ' + data.red_psc + ', ' + 'Czechia');
                         if (typeof gpsCoords !== 'undefined' && Array.isArray(gpsCoords) && gpsCoords.length) {
                             const coord = gpsCoords[0];
                             schoolToCreate.latitude = coord.latitude;
                             schoolToCreate.longitude = coord.longitude;
-                            schoolToCreate.gps_status = 'FIXED';
                         }
                     }
                     uniqueRecordsMap.set(schoolToCreate.unique_hash, true);
